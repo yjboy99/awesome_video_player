@@ -10,11 +10,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String videoUrl = "https://www.runoob.com/try/demo_source/movie.mp4";
+  String videoUrl = "https://cn7.qxreader.com/hls/20200126/17c98480b30664f7862cdc858dceb835/1580008892/index.m3u8";
   // String videoUrl = "https://yun.zxziyuan-yun.com/20180221/4C6ivf8O/index.m3u8";
   // String videoUrl = "http://vodkgeyttp8.vod.126.net/cloudmusic/1241/core/e30b/aec700ee466da6c8ce51d12953e7b89f.mp4?wsSecret=a6d7342a3ea018d632b3d7ce56ffd11f&wsTime=1580815486";
   // String videoUrl = "http://vod.anyrtc.cc/364c01b9c8ca4e46bd65e7307887341d/34688ef93da349628d5e4efacf8a5167-9fd7790c8f5862b09c350e4a916b203d.mp4";
-
+  VideoPlayerController controller;
   String mainSubtitles = ""; //主字幕
   String subSubtitles = ""; //辅字幕
   bool _isPlaying = false;
@@ -42,11 +42,11 @@ class _MyAppState extends State<MyApp> {
                     title: const Text('Awsome video player'),
                   )
                 : null,
-            body: Column(children: <Widget>[
-              videoUrl != ""
+            body: Column(
+                children: <Widget>[
+                  videoUrl != ""
                   ? AwsomeVideoPlayer(
                       videoUrl,
-
                       /// 视频播放配置
                       playOptions: VideoPlayOptions(
                           seekSeconds: 30,
@@ -314,7 +314,6 @@ class _MyAppState extends State<MyApp> {
                               )
                             : Align(),
                       ],
-
                       /// 视频暂停回调
                       onpause: (value) {
                         print("video paused");
@@ -322,7 +321,12 @@ class _MyAppState extends State<MyApp> {
                           isPlaying = false;
                         });
                       },
-
+                      /// 初始化
+                      oninit: (c){
+                        setState(() {
+                          controller = c;
+                        });
+                      },
                       /// 视频播放回调
                       onplay: (value) {
                         print("video played");
@@ -378,19 +382,59 @@ class _MyAppState extends State<MyApp> {
 
               //update data source
               !_isFullscreen
-                  ? RaisedButton(
-                      color: Colors.blue,
-                      textColor: Colors.white,
-                      child: Text("update data source"),
-                      onPressed: () {
-                        /// 更改视频播放链接DMEO
-                        setState(() {
-                          // videoUrl = "https://www.runoob.com/try/demo_source/movie.mp4";
-                          videoUrl =
+                  ? Column(
+                      children: <Widget>[
+                        RaisedButton(
+                          color: Colors.blue,
+                          textColor: Colors.white,
+                          child: Text("update data source"),
+                          onPressed: () {
+                            /// 更改视频播放链接DMEO
+                            setState(() {
+                              // videoUrl = "https://www.runoob.com/try/demo_source/movie.mp4";
+                              videoUrl =
                               "https://yun.zxziyuan-yun.com/20180221/4C6ivf8O/index.m3u8";
-                        });
-                      },
-                    )
+                            });
+                          },
+                        ),
+                        RaisedButton(
+                          color: Colors.blue,
+                          textColor: Colors.white,
+                          child: Text("update video rate"),
+                          onPressed: () {
+                            /// 更改视频播放链接DMEO
+                            controller.speed(2.0);
+                          },
+                        ),
+                        RaisedButton(
+                          color: Colors.blue,
+                          textColor: Colors.white,
+                          child: Text(" rate"),
+                          onPressed: () {
+                            /// 更改视频播放链接DMEO
+                            controller.speed(1.0);
+                          },
+                        ),
+                        RaisedButton(
+                          color: Colors.blue,
+                          textColor: Colors.white,
+                          child: Text("stop video"),
+                          onPressed: () {
+                            /// 更改视频播放链接DMEO
+                            controller.pause();
+                          },
+                        ),
+                        RaisedButton(
+                          color: Colors.blue,
+                          textColor: Colors.white,
+                          child: Text("play video"),
+                          onPressed: () {
+                            /// 更改视频播放链接DMEO
+                            controller.play();
+                          },
+                        )
+                      ],
+                   )
                   : Container(),
             ])));
   }

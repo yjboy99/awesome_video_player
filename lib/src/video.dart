@@ -15,6 +15,7 @@ import './widget/linear_progress_bar.dart';
 import './widget/video_top_bar.dart';
 import './widget/video_bottom_bar.dart';
 import './widget/video_loading_view.dart';
+import 'util/time_util.dart';
 
 typedef VideoCallback<T> = void Function(T t);
 
@@ -119,6 +120,12 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
 
   StreamSubscription<ConnectivityResult> subscription;
 
+  ///UI
+  IconData iconData = Icons.volume_up;
+  String text = '';
+  bool showSeekText = false;
+  bool leftVerticalDrag;
+  Duration showDuration;
   @override
   void initState() {
     super.initState();
@@ -632,6 +639,62 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
           : Align()
     ];
   }
+  List<Widget> ExpandedVideo(){
+    return [
+      Align(
+        child: showSeekText ? Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).size.width / 3),
+          child: Container(
+            width: 150,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Color(0x7f000000),
+              borderRadius: BorderRadius.all(Radius.circular(10.0)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(TimeUtil.formatDuration(showDuration), style: TextStyle(
+                  color: Color(0xfffe373c),
+                  fontSize: 18,
+                ),),
+                Text('/' + TimeUtil.formatDuration(controller.value.duration), style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                ),),
+              ],
+            ),
+          ),
+        ): SizedBox(),
+      ),
+      Align(
+        child: leftVerticalDrag != null ? Container(
+          width: 100,
+          height: 100,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Color(0x7f000000),
+            borderRadius: BorderRadius.all(Radius.circular(10.0)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(iconData, color: Color(0x88FE373C), size: 25,),
+              Padding(
+                padding: EdgeInsets.all(5.0),
+                child: Text(text, style: TextStyle(
+                  color: Color(0x88FE373C),
+                  fontSize: 18,
+                )),
+              ),
+            ],
+          ),
+        ): SizedBox(),
+      ),
+      Container()
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -656,6 +719,10 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
             if (controller.value.isPlaying) {
               controller.pause();
             }
+            setState(() {
+              showDuration = controller.value.position;
+              showSeekText = true;
+            });
           },
           onHorizontalDragUpdate: (DragUpdateDetails details) {
             if (!controller.value.initialized) return;
@@ -665,102 +732,119 @@ class _AwsomeVideoPlayerState extends State<AwsomeVideoPlayer>
               });
               createHideControlbarTimer();
             }
+            if (showDuration == null) return;
             var currentPosition = controller.value.position;
-            controller.seekTo(Duration(
+            showDuration = Duration(
                 milliseconds: details.primaryDelta > 0
                     ? currentPosition.inMilliseconds +
-                        widget.playOptions.progressGestureUnit
+                    widget.playOptions.progressGestureUnit
                     : currentPosition.inMilliseconds -
-                        widget.playOptions.progressGestureUnit));
+                    widget.playOptions.progressGestureUnit);
+            if (showDuration < Duration()) {
+              showDuration = Duration();
+            } else if (showDuration > controller.value.duration) {
+              showDuration = controller.value.duration;
+            }
+
+
+            controller.seekTo(showDuration);
+            if (mounted) setState(() {});
           },
           onHorizontalDragEnd: (DragEndDetails details) {
             if (!controller.value.isPlaying) {
               controller.play();
             }
+            setState(() {
+              showDuration = controller.value.position;
+              showSeekText = false;
+            });
           },
 
           /// 垂直滑动 - 调节亮度以及音量
           onVerticalDragStart: (DragStartDetails details) {
             if (!controller.value.initialized) return;
+            leftVerticalDrag =details.globalPosition.dx >= (screenSize.width / 2);
+            if (leftVerticalDrag == false) {
+
+            }
           },
           onVerticalDragUpdate: (DragUpdateDetails details) async {
             if (!controller.value.initialized) return;
-            // 右侧垂直滑动 - 音量调节
-            if (details.globalPosition.dx >= (screenSize.width / 2)) {
-              if (details.primaryDelta > 0) {
-                //往下滑动
-                if (controller.value.volume <= 0) return;
-                var vol = controller.value.volume -
-                    widget.playOptions.volumeGestureUnit;
-                if (widget.onvolume != null) {
-                  widget.onvolume(vol);
-                }
-                controller.setVolume(vol);
+            if (leftVerticalDrag == false) {
+              double targetBright = ((await Screen.brightness) - details.delta.dy * 0.01).clamp(0.0, 1.0);
+              Screen.setBrightness(targetBright);
+              if (targetBright >= 0.66) {
+                iconData = Icons.brightness_high;
+              } else if(targetBright < 0.66 && targetBright > 0.33) {
+                iconData = Icons.brightness_medium;
               } else {
-                //往上滑动
-                if (controller.value.volume >= 1) return;
-                var vol = controller.value.volume +
-                    widget.playOptions.volumeGestureUnit;
-                if (widget.onvolume != null) {
-                  widget.onvolume(vol);
-                }
-                controller.setVolume(vol);
+                iconData = Icons.brightness_low;
               }
-            } else {
-              // 左侧垂直滑动 - 亮度调节
-              if (brightness == null) {
-                brightness = await Screen.brightness;
+              text = (targetBright * 100).toStringAsFixed(0);
+              if (mounted) setState(() {});
+            } else if (leftVerticalDrag == true) {
+              double vol = (controller.value.volume - details.delta.dy * 0.01).clamp(0.0, 1.0);
+              if (widget.onvolume != null) {
+                widget.onvolume(vol);
               }
-              if (details.primaryDelta > 0) {
-                //往下滑动
-                if (brightness <= 0) return;
-                brightness -= widget.playOptions.brightnessGestureUnit;
-                if (widget.onbrightness != null) {
-                  widget.onbrightness(brightness);
-                }
+              print(vol);
+              controller.setVolume(vol);
+              if (vol >= 0.66) {
+                iconData = Icons.volume_up;
+              } else if(vol < 0.66 && vol > 0.33) {
+                iconData = Icons.volume_down;
               } else {
-                //往上滑动
-                if (brightness >= 1) return;
-                brightness += widget.playOptions.brightnessGestureUnit;
-                if (widget.onbrightness != null) {
-                  widget.onbrightness(brightness);
-                }
+                iconData = Icons.volume_mute;
               }
-              Screen.setBrightness(brightness);
+              text = (((controller.value.volume - details.delta.dy * 0.01).clamp(0.0, 1.0)*100).toInt()).toString();
+              if (mounted) setState(() {});
             }
           },
-          onVerticalDragEnd: (DragEndDetails details) {},
+          onVerticalDragEnd: (DragEndDetails details) {
+            setState(() {
+              leftVerticalDrag = null;
+            });
+          },
 
           ///视频播放器
-          child: ClipRect(
-              child: Container(
-            width: double.infinity,
-            height: double.infinity,
+          child: Container(
             color: Colors.black,
-            child: Center(
-                child: AspectRatio(
-              aspectRatio: controller.value.aspectRatio,
-              child: VideoPlayer(controller),
-            )),
-          ))),
+            alignment: Alignment.center,
+            child: Stack(
+              overflow: Overflow.visible,
+              alignment: Alignment.center,
+              children: <Widget>[
+                AspectRatio(
+                  aspectRatio: controller.value.aspectRatio,
+                  child: VideoPlayer(controller),
+                ),
+              ],
+            ),
+          )
+      ),
 
       ///控制拦以及(可拓展)元素
     ];
+
 
     /// 内置元素
     videoChildrens.addAll(videoBuiltInChildrens());
 
     /// 自定义拓展元素
     videoChildrens.addAll(widget.children ?? []);
-
+    /// 支撑全屏
+    videoChildrens.addAll(ExpandedVideo());
     /// 构建video
-    return AspectRatio(
-      aspectRatio: fullscreened
-          ? _calculateAspectRatio(context)
-          : widget.playOptions.aspectRatio,
 
-      /// build 所有video组件
-      child: Stack(children: videoChildrens),
+    return Container(
+      color: Colors.black,
+      child: AspectRatio(
+        aspectRatio: fullscreened
+            ? _calculateAspectRatio(context)
+            : widget.playOptions.aspectRatio,
+        /// build 所有video组件
+        child: Stack(children: videoChildrens),
+      ),
     );
   }
 
