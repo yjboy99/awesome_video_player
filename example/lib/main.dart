@@ -403,7 +403,7 @@ class _MyAppState extends State<MyApp> {
                           child: Text("update video rate"),
                           onPressed: () {
                             /// 更改视频播放链接DMEO
-                            controller.speed(2.0);
+                            controller?.speed(2.0);
                           },
                         ),
                         RaisedButton(
@@ -412,7 +412,7 @@ class _MyAppState extends State<MyApp> {
                           child: Text(" rate"),
                           onPressed: () {
                             /// 更改视频播放链接DMEO
-                            controller.speed(1.0);
+                            controller?.speed(1.0);
                           },
                         ),
                         RaisedButton(
@@ -421,7 +421,7 @@ class _MyAppState extends State<MyApp> {
                           child: Text("stop video"),
                           onPressed: () {
                             /// 更改视频播放链接DMEO
-                            controller.pause();
+                            controller?.pause();
                           },
                         ),
                         RaisedButton(
@@ -430,7 +430,7 @@ class _MyAppState extends State<MyApp> {
                           child: Text("play video"),
                           onPressed: () {
                             /// 更改视频播放链接DMEO
-                            controller.play();
+                            controller?.play();
                           },
                         )
                       ],

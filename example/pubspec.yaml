@@ -18,8 +18,8 @@ dev_dependencies:
     sdk: flutter
 
   awsome_video_player: 
-    # git: 
-    #   url: https://github.com/chudongvip/awsome_video_player.git
+#     git:
+#       url: https://github.com/yjboy99/awesome_video_player.git
     path: ../
 
 # For information on the generic Dart part of this file, see the

@@ -9,3 +9,4 @@ export './src/video_subtitles.dart';
 export './src/video_progress_style.dart';
 export './src/video.dart';
 export 'package:video_player/video_player.dart';
+
